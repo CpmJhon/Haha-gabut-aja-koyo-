@@ -49,12 +49,12 @@
           body: formData
         });
         const data = await res.json();
-        if (data.secure_url) {
-          result.innerHTML = `✅ <a href="${data.secure_url}" target="_blank" class="text-blue-600 underline">${data.secure_url}</a>`;
-        } else {
-          result.textContent = "Upload gagal!";
-          console.error(data);
-        }
+console.log("Response dari Cloudinary:", data);
+if (data.secure_url) {
+  result.innerHTML = `✅ <a href="${data.secure_url}" target="_blank" class="text-blue-600 underline">${data.secure_url}</a>`;
+} else {
+  result.textContent = "Upload gagal!";
+}
       } catch (err) {
         console.error(err);
         result.textContent = "Terjadi error saat upload.";
