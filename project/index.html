@@ -3,140 +3,169 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Upload Foto → Cloudinary</title>
+  <title>Upload Foto → Cloudinary (Multi Upload)</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-6">
-  <div class="bg-white rounded-xl shadow-lg p-6 max-w-lg w-full">
-    <h1 class="text-xl font-bold mb-4">Upload Foto jadi Link (Cloudinary)</h1>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center p-6">
+  <div class="bg-gray-800 rounded-xl shadow-lg p-6 max-w-2xl w-full border border-gray-700">
+    <h1 class="text-xl font-bold mb-4 text-green-400">📂 Multi Upload Foto → Cloudinary</h1>
 
-    <form id="uploadForm" class="space-y-4">
-      <!-- Pilih file -->
-      <input id="fileInput" type="file" accept="image/*"
-        class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
-               file:rounded-full file:border-0 file:text-sm file:font-semibold
-               file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100"/>
+    <!-- Dropzone -->
+    <div id="dropZone" class="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center cursor-pointer hover:border-green-400 transition">
+      <p class="text-gray-400">Drag & Drop gambar di sini atau klik untuk memilih file (bisa banyak)</p>
+      <input id="fileInput" type="file" accept="image/*" multiple class="hidden"/>
+    </div>
 
-      <!-- Preview -->
-      <div id="previewContainer" class="hidden">
-        <p class="text-sm text-gray-500 mb-2">Preview:</p>
-        <img id="previewImage" class="w-full rounded-lg shadow border" alt="Preview gambar" />
-      </div>
+    <!-- Preview -->
+    <div id="previewContainer" class="hidden mt-4">
+      <p class="text-sm text-gray-400 mb-2">Preview:</p>
+      <div id="previewList" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+    </div>
 
-      <!-- Input nama file -->
-      <input id="fileName" type="text" placeholder="Nama file (opsional)"
-        class="w-full border rounded-lg px-3 py-2 text-sm text-gray-700" />
+    <!-- Tombol Upload -->
+    <button id="uploadBtn" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg w-full mt-4">
+      ⬆️ Upload Semua
+    </button>
 
-      <!-- Tombol Upload -->
-      <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg w-full">
-        Upload
-      </button>
-    </form>
-
-    <div id="result" class="mt-4 text-sm text-gray-700"></div>
+    <!-- Hasil -->
+    <div id="result" class="mt-6 text-sm text-gray-200 space-y-6"></div>
   </div>
 
   <script>
-    const form = document.getElementById("uploadForm");
+    const dropZone = document.getElementById("dropZone");
     const fileInput = document.getElementById("fileInput");
-    const fileNameInput = document.getElementById("fileName");
     const previewContainer = document.getElementById("previewContainer");
-    const previewImage = document.getElementById("previewImage");
+    const previewList = document.getElementById("previewList");
     const result = document.getElementById("result");
+    const uploadBtn = document.getElementById("uploadBtn");
 
     // Ganti sesuai akun Cloudinary
     const CLOUD_NAME = "ddbqhpuoz";   // contoh: dabc123xy
     const UPLOAD_PRESET = "upload_Jhon"; // preset UNSIGNED dari dashboard
 
-    // Preview saat file dipilih
-    fileInput.addEventListener("change", () => {
-      const file = fileInput.files[0];
-      if (file) {
+    let selectedFiles = [];
+
+    // Fungsi preview
+    function showPreviews(files) {
+      previewList.innerHTML = "";
+      [...files].forEach((file, idx) => {
         const reader = new FileReader();
         reader.onload = (e) => {
-          previewImage.src = e.target.result;
-          previewContainer.classList.remove("hidden");
+          const img = document.createElement("img");
+          img.src = e.target.result;
+          img.className = "w-full h-32 object-cover rounded-lg shadow border border-gray-700";
+          previewList.appendChild(img);
         };
         reader.readAsDataURL(file);
-      } else {
-        previewContainer.classList.add("hidden");
+      });
+      previewContainer.classList.remove("hidden");
+    }
+
+    // Klik dropzone = buka file picker
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    // Saat pilih file manual
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files.length > 0) {
+        selectedFiles = [...fileInput.files];
+        showPreviews(selectedFiles);
+      }
+    });
+
+    // Drag over
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("border-green-400", "bg-gray-700");
+    });
+
+    // Drag leave
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.classList.remove("border-green-400", "bg-gray-700");
+    });
+
+    // Drop file
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("border-green-400", "bg-gray-700");
+      if (e.dataTransfer.files.length > 0) {
+        selectedFiles = [...e.dataTransfer.files];
+        showPreviews(selectedFiles);
       }
     });
 
     // Upload ke Cloudinary
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const file = fileInput.files[0];
-      const customName = fileNameInput.value.trim();
+    uploadBtn.addEventListener("click", async () => {
+      if (selectedFiles.length === 0) return alert("Pilih atau drag file dulu");
 
-      if (!file) return alert("Pilih file dulu");
+      result.innerHTML = `<p class="text-yellow-400">⏳ Mengupload ${selectedFiles.length} file...</p>`;
 
-      result.textContent = "Mengupload...";
+      let allResults = "";
 
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", UPLOAD_PRESET);
-      if (customName) {
-        formData.append("public_id", customName); // nama file custom
-      }
+      for (const file of selectedFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", UPLOAD_PRESET);
 
-      try {
-        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-          method: "POST",
-          body: formData
-        });
-        const data = await res.json();
-        console.log("Response:", data);
-
-        if (data.secure_url) {
-          // Generate berbagai format
-          const directUrl = data.secure_url;
-          const bbCode = `[img]${directUrl}[/img]`;
-          const markdown = `![image](${directUrl})`;
-
-          // Copy otomatis direct URL
-          await navigator.clipboard.writeText(directUrl);
-
-          result.innerHTML = `
-            ✅ Upload berhasil!<br>
-            <p class="mt-2">Link:</p>
-            <div class="flex items-center gap-2 mt-1">
-              <a href="${directUrl}" target="_blank" class="text-blue-600 underline break-all flex-1">${directUrl}</a>
-              <button class="copyBtn px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600" data-text="${directUrl}">Copy</button>
-            </div>
-
-            <p class="mt-2">BBCode:</p>
-            <div class="flex items-center gap-2 mt-1">
-              <code class="bg-gray-100 px-2 py-1 rounded text-xs break-all flex-1">${bbCode}</code>
-              <button class="copyBtn px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600" data-text="${bbCode}">Copy</button>
-            </div>
-
-            <p class="mt-2">Markdown:</p>
-            <div class="flex items-center gap-2 mt-1">
-              <code class="bg-gray-100 px-2 py-1 rounded text-xs break-all flex-1">${markdown}</code>
-              <button class="copyBtn px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600" data-text="${markdown}">Copy</button>
-            </div>
-
-            <p class="text-xs text-gray-500 mt-3">(Link sudah otomatis dicopy ke clipboard)</p>
-          `;
-
-          // Tambah event listener untuk semua tombol copy
-          document.querySelectorAll(".copyBtn").forEach(btn => {
-            btn.addEventListener("click", async () => {
-              const text = btn.getAttribute("data-text");
-              await navigator.clipboard.writeText(text);
-              btn.textContent = "Copied!";
-              setTimeout(() => btn.textContent = "Copy", 2000);
-            });
+        try {
+          const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+            method: "POST",
+            body: formData
           });
+          const data = await res.json();
 
-        } else {
-          result.textContent = "Upload gagal!";
+          if (data.secure_url) {
+            const directUrl = data.secure_url;
+            const bbCode = `[img]${directUrl}[/img]`;
+            const markdown = `![image](${directUrl})`;
+            const htmlTag = `<img src="${directUrl}" alt="image">`;
+
+            allResults += `
+              <div class="bg-gray-900 p-3 rounded-lg border border-gray-700">
+                <p class="text-green-400 font-semibold mb-2">✅ ${file.name}</p>
+
+                <p class="text-gray-300">🔗 Direct URL:</p>
+                <div class="flex items-center gap-2 mt-1">
+                  <a href="${directUrl}" target="_blank" class="text-green-400 underline break-all flex-1">${directUrl}</a>
+                  <button class="copyBtn px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600" data-text="${directUrl}">Copy</button>
+                </div>
+
+                <p class="mt-3 text-gray-300">📄 BBCode:</p>
+                <div class="flex items-center gap-2 mt-1">
+                  <code class="bg-gray-800 px-2 py-1 rounded text-xs break-all flex-1 text-green-300">${bbCode}</code>
+                  <button class="copyBtn px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600" data-text="${bbCode}">Copy</button>
+                </div>
+
+                <p class="mt-3 text-gray-300">📄 Markdown:</p>
+                <div class="flex items-center gap-2 mt-1">
+                  <code class="bg-gray-800 px-2 py-1 rounded text-xs break-all flex-1 text-green-300">${markdown}</code>
+                  <button class="copyBtn px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600" data-text="${markdown}">Copy</button>
+                </div>
+
+                <p class="mt-3 text-gray-300">📄 HTML &lt;img&gt;:</p>
+                <div class="flex items-center gap-2 mt-1">
+                  <code class="bg-gray-800 px-2 py-1 rounded text-xs break-all flex-1 text-green-300">${htmlTag}</code>
+                  <button class="copyBtn px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600" data-text="${htmlTag}">Copy</button>
+                </div>
+              </div>
+            `;
+          }
+        } catch (err) {
+          console.error(err);
+          allResults += `<p class="text-red-400">⚠️ Gagal upload ${file.name}</p>`;
         }
-      } catch (err) {
-        console.error(err);
-        result.textContent = "Terjadi error saat upload.";
       }
+
+      result.innerHTML = allResults;
+
+      // Event tombol copy
+      document.querySelectorAll(".copyBtn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const text = btn.getAttribute("data-text");
+          await navigator.clipboard.writeText(text);
+          btn.textContent = "Copied!";
+          setTimeout(() => btn.textContent = "Copy", 2000);
+        });
+      });
     });
   </script>
 </body>
