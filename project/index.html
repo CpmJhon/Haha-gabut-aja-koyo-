@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upload Foto → Link</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6 flex items-center justify-center">
+  <div class="bg-white rounded-xl shadow-lg p-6 max-w-lg w-full">
+    <h1 class="text-xl font-bold mb-4">Upload Foto jadi Link</h1>
+
+    <form id="uploadForm" class="space-y-4">
+      <input id="fileInput" type="file" name="file" accept="image/*"
+        class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
+               file:rounded-full file:border-0 file:text-sm file:font-semibold
+               file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100"/>
+      <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg w-full">
+        Upload
+      </button>
+    </form>
+
+    <div id="result" class="mt-4 text-sm text-gray-700"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById("uploadForm");
+    const fileInput = document.getElementById("fileInput");
+    const result = document.getElementById("result");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const file = fileInput.files[0];
+      if (!file) return alert("Pilih file dulu");
+
+      const data = new FormData();
+      data.append("file", file);
+
+      result.textContent = "Mengupload...";
+
+      try {
+        const res = await fetch("/.netlify/functions/upload", {
+          method: "POST",
+          body: data,
+        });
+        const json = await res.json();
+        if (json.url) {
+          result.innerHTML = `
+            ✅ <a href="${json.url}" target="_blank" class="text-blue-600 underline">
+              ${json.url}
+            </a>`;
+        } else {
+          result.textContent = "Gagal upload.";
+        }
+      } catch (err) {
+        console.error(err);
+        result.textContent = "Error saat upload.";
+      }
+    });
+  </script>
+</body>
+</html>
