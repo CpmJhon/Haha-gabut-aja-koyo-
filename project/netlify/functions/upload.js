@@ -1,32 +1,48 @@
-const path = require("path");
-const fs = require("fs");
+const cloudinary = require("cloudinary").v2;
+const Busboy = require("busboy");
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_ddbqhpuoz,
+  api_key: process.env.CLOUDINARY_153735887162795,
+  api_secret: process.env.CLOUDINARY_DY8Qrmg8CVKjFoA25XDwMiEQk4o,
+});
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  // Netlify Functions tidak support multipart langsung,
-  // jadi kita perlu library "busboy" untuk parse form-data.
-  const Busboy = require("busboy");
-
   return new Promise((resolve, reject) => {
     try {
       const busboy = Busboy({ headers: event.headers });
-      let saveTo, fileName;
+      let fileBuffer = [];
 
-      busboy.on("file", (fieldname, file, filename) => {
-        fileName = Date.now() + "-" + filename.filename;
-        saveTo = path.join(__dirname, "../../uploads", fileName);
-        file.pipe(fs.createWriteStream(saveTo));
+      busboy.on("file", (fieldname, file) => {
+        file.on("data", (data) => fileBuffer.push(data));
       });
 
-      busboy.on("finish", () => {
-        const url = `https://${process.env.URL}/uploads/${fileName}`;
-        resolve({
-          statusCode: 200,
-          body: JSON.stringify({ url }),
-        });
+      busboy.on("finish", async () => {
+        try {
+          const buffer = Buffer.concat(fileBuffer);
+          const uploadRes = await cloudinary.uploader.upload_stream(
+            { folder: "netlify_uploads" },
+            (err, result) => {
+              if (err) {
+                reject({ statusCode: 500, body: JSON.stringify({ error: err.message }) });
+              } else {
+                resolve({
+                  statusCode: 200,
+                  body: JSON.stringify({ url: result.secure_url }),
+                });
+              }
+            }
+          );
+          // pipe data ke cloudinary
+          const stream = uploadRes;
+          stream.end(buffer);
+        } catch (err) {
+          reject({ statusCode: 500, body: JSON.stringify({ error: err.message }) });
+        }
       });
 
       busboy.end(Buffer.from(event.body, "base64"));
