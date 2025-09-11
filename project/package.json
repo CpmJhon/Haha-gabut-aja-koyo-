@@ -1,0 +1,14 @@
+{
+  "name": "netlify-cloudinary-upload",
+  "version": "1.0.0",
+  "description": "Upload foto ke Cloudinary via Netlify Functions",
+  "main": "index.html",
+  "scripts": {
+    "start": "netlify dev"
+  },
+  "dependencies": {
+    "busboy": "^1.6.0",
+    "cloudinary": "^1.41.0"
+  },
+  "devDependencies": {}
+}
